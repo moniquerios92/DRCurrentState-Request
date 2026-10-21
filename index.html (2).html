@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resilience Inventory: Channel Submission</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root { --rack:#0B0E12; --panel:#151C24; --panel-2:#1C252F; --edge:#2A3642; --text:#D7DEE5; --dim:#788693; --dimmer:#556371; --ctrl:#4FC3D9; --hot:#3FD37A; --cold:#F0A830; --none:#E2483F; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--rack); color:var(--text); font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:14px; line-height:1.5; }
+  .shell { max-width:820px; margin:0 auto; padding:28px 22px 60px; display:flex; flex-direction:column; gap:16px; }
+  .eyebrow { font-family:"Saira Condensed",system-ui,sans-serif; font-size:12px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); margin:0 0 4px; }
+  h1 { font-family:"Saira Condensed",system-ui,sans-serif; font-size:34px; font-weight:700; margin:0; line-height:1.05; }
+  .lede { color:var(--dim); margin:8px 0 0; }
+  .card { background:var(--panel); border:1px solid var(--edge); border-radius:4px; padding:16px 18px; display:flex; flex-direction:column; gap:12px; }
+  .card h2 { font-family:"Saira Condensed",system-ui,sans-serif; font-size:16px; letter-spacing:.06em; text-transform:uppercase; color:var(--ctrl); margin:0; }
+  label { display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(--dim); }
+  label .hint { color:var(--dimmer); font-size:11.5px; }
+  input, select, textarea { font-family:inherit; font-size:13.5px; color:var(--text); background:var(--rack); border:1px solid var(--edge); border-radius:3px; padding:8px 10px; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--ctrl); }
+  textarea { min-height:70px; resize:vertical; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .entry { background:var(--panel); border:1px solid var(--edge); border-left:3px solid var(--ctrl); border-radius:4px; padding:16px 18px; display:flex; flex-direction:column; gap:12px; }
+  .entry-head { display:flex; justify-content:space-between; align-items:center; }
+  .entry-head h3 { margin:0; font-family:"Saira Condensed",system-ui,sans-serif; font-size:17px; letter-spacing:.04em; }
+  fieldset { border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+  legend { font-size:12.5px; color:var(--dim); padding:0; margin-bottom:6px; }
+  .posture-opts { display:flex; flex-direction:column; gap:6px; }
+  .opt { display:flex; align-items:flex-start; gap:9px; padding:9px 11px; border:1px solid var(--edge); border-radius:3px; cursor:pointer; color:var(--text); font-size:13px; }
+  .opt:hover { border-color:var(--dimmer); }
+  .opt input { margin-top:3px; accent-color:var(--ctrl); }
+  .opt small { display:block; color:var(--dimmer); font-size:11.5px; }
+  .opt.hot-hot { border-left:3px solid var(--hot); }
+  .opt.hot-cold { border-left:3px solid var(--cold); }
+  .opt.none { border-left:3px solid var(--none); }
+  button { font-family:inherit; font-size:13px; color:var(--text); background:var(--panel-2); border:1px solid var(--edge); border-radius:3px; padding:8px 14px; cursor:pointer; }
+  button:hover { border-color:var(--ctrl); }
+  button.primary { border-color:var(--ctrl); color:var(--ctrl); }
+  button.link { background:none; border:0; color:var(--dim); padding:4px 0; }
+  .actions { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:center; }
+  .actions .right { display:flex; gap:10px; }
+  .msg { font-size:13px; min-height:20px; }
+  .msg.err { color:var(--none); }
+  .msg.ok { color:var(--hot); }
+  .note { font-size:12px; color:var(--dimmer); line-height:1.6; }
+  @media (max-width:640px) { .row { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <p class="eyebrow">FOX Corporation &middot; Technology &amp; Operations</p>
+    <h1>Resilience inventory: channel submission</h1>
+    <p class="lede">Complete one entry for each channel or platform your business unit owns. Your answers update the proposed Tempe Resilience Matrix. The matrix is a straw-man: state what is true today, and where it should change, say so in the rationale fields.</p>
+  </header>
+
+  <section class="card">
+    <h2>Your business unit</h2>
+    <div class="row">
+      <label>Business unit
+        <select id="bu">
+          <option value="">Select...</option>
+          <option>FOX News Media</option>
+          <option>FOX Sports</option>
+          <option>FOX Sports Mexico</option>
+          <option>FOX Entertainment</option>
+          <option>FOX Television Stations</option>
+          <option>Fox One</option>
+          <option>Video Infrastructure</option>
+          <option>Other</option>
+        </select>
+      </label>
+      <label>Your name and role
+        <input id="contact" type="text" placeholder="e.g. Jane Doe, Playout Engineering Lead">
+      </label>
+    </div>
+  </section>
+
+  <div id="entries" style="display:flex;flex-direction:column;gap:14px;"></div>
+
+  <div class="actions">
+    <button type="button" id="add">+ Add another channel</button>
+    <div class="right">
+      <button type="button" id="reset" class="link">Clear all</button>
+      <button type="button" id="save" class="primary">Download response file</button>
+    </div>
+  </div>
+  <div class="msg" id="msg" role="status"></div>
+  <p class="note">When you download, a .json file is saved to your computer. Email that file to the resilience matrix owner. Do not edit its contents.</p>
+</div>
+
+<datalist id="rtoList">
+  <option value="Automatic"></option><option value="< 30 sec"></option><option value="< 1 min"></option>
+  <option value="15 min"></option><option value="15–30 min"></option><option value="1 hr"></option>
+  <option value="4 hr"></option><option value="8 hr"></option><option value="24 hr"></option>
+  <option value="Vendor SLA"></option><option value="Best effort"></option>
+</datalist>
+
+<script>
+(function () {
+  "use strict";
+  var seq = 0;
+  var POSTURE_OPTS = [
+    { v: "hot-hot", cls: "hot-hot", title: "HOT-HOT", desc: "Tempe and Pico both live, with duplicate infrastructure and duplicate live teams. Failover is a switch." },
+    { v: "hot-cold", cls: "hot-cold", title: "HOT-COLD", desc: "Secondary site holds current configuration and media but no live signal and no standing crew. Stand-up takes 15 to 30 minutes." },
+    { v: "none", cls: "none", title: "NO BACKUP", desc: "Backups and source control only. Recovery means rebuilding on whatever capacity is available." }
+  ];
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
+
+  function entryHtml(n) {
+    var g = "posture-" + n;
+    return '<section class="entry" data-entry>' +
+      '<div class="entry-head"><h3>Channel ' + n + '</h3>' +
+      '<button type="button" class="link remove">Remove</button></div>' +
+      '<label>Channel name <span class="hint">As it appears in the matrix, e.g. FS2 or FOX Weather Channel</span>' +
+        '<input type="text" data-k="channel_name" required></label>' +
+      '<fieldset><legend>Posture: which best describes this channel today, or the posture it needs</legend>' +
+        '<div class="posture-opts">' +
+        POSTURE_OPTS.map(function (o) {
+          return '<label class="opt ' + o.cls + '"><input type="radio" name="' + g + '" value="' + o.v + '">' +
+                 '<span><strong>' + o.title + '</strong><small>' + o.desc + '</small></span></label>';
+        }).join("") +
+        '</div></fieldset>' +
+      '<div class="row">' +
+        '<label>RTO: time to restore service <span class="hint">Choose a suggestion or type your own</span>' +
+          '<input type="text" list="rtoList" data-k="rto" required></label>' +
+        '<label>RPO: how much work or data may be lost <span class="hint">e.g. 0, 15 min, 4 hr</span>' +
+          '<input type="text" data-k="rpo" required></label>' +
+      '</div>' +
+      '<label>Failover target: who is being failed over to what' +
+        '<span class="hint">e.g. Tempe master control chain fails over to Pico, with Pico crew on standby. Name the team and the site.</span>' +
+        '<textarea data-k="failover_target" required></textarea></label>' +
+      '<label>Failover rationale: why this failover type and timing is acceptable for this channel' +
+        '<span class="hint">Explain why hot-hot, hot-cold or no backup is enough for this channel, and why the RTO and RPO above are acceptable.</span>' +
+        '<textarea data-k="failover_rationale" required></textarea></label>' +
+      '<label>Additional backup scenarios for this channel' +
+        '<span class="hint">Other failure modes and their recovery paths: fiber cut, vendor outage, region loss, cyber incident, key-person absence. Leave blank if none.</span>' +
+        '<textarea data-k="additional_scenarios"></textarea></label>' +
+    '</section>';
+  }
+
+  function addEntry() {
+    seq++;
+    var wrap = document.createElement("div");
+    wrap.innerHTML = entryHtml(seq);
+    var el = wrap.firstElementChild;
+    el.querySelector(".remove").addEventListener("click", function () {
+      if (document.querySelectorAll("[data-entry]").length === 1) { msg("At least one channel is needed. Clear the fields instead.", true); return; }
+      el.remove();
+      renumber();
+    });
+    document.getElementById("entries").appendChild(el);
+    el.querySelector("input[data-k=channel_name]").focus();
+  }
+
+  function renumber() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-entry]"), function (el, i) {
+      el.querySelector("h3").textContent = "Channel " + (i + 1);
+    });
+  }
+
+  function msg(text, isErr) {
+    var m = document.getElementById("msg");
+    m.textContent = text;
+    m.className = "msg " + (isErr ? "err" : "ok");
+  }
+
+  function collect() {
+    var bu = document.getElementById("bu").value;
+    var contact = document.getElementById("contact").value.trim();
+    if (!bu) { msg("Select your business unit.", true); return null; }
+    if (!contact) { msg("Enter your name and role.", true); return null; }
+    var out = [], problems = [];
+    Array.prototype.forEach.call(document.querySelectorAll("[data-entry]"), function (el, i) {
+      var rec = { business_unit: bu, contact: contact, submitted: new Date().toISOString().slice(0, 10) };
+      Array.prototype.forEach.call(el.querySelectorAll("[data-k]"), function (inp) {
+        rec[inp.dataset.k] = inp.value.trim();
+      });
+      var checked = el.querySelector('input[type="radio"]:checked');
+      rec.posture = checked ? checked.value : "";
+      var required = ["channel_name", "rto", "rpo", "failover_target", "failover_rationale"];
+      required.forEach(function (k) { if (!rec[k]) problems.push("Channel " + (i + 1) + ": " + k.replace(/_/g, " ") + " is required."); });
+      if (!rec.posture) problems.push("Channel " + (i + 1) + ": choose a posture.");
+      out.push(rec);
+    });
+    if (problems.length) { msg(problems[0] + (problems.length > 1 ? " (" + (problems.length - 1) + " more)" : ""), true); return null; }
+    return out;
+  }
+
+  function save() {
+    var data = collect();
+    if (!data) return;
+    var slug = document.getElementById("bu").value.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+    a.download = "resilience-response-" + slug + "-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+    msg("Downloaded " + data.length + " channel" + (data.length === 1 ? "" : "s") + ". Email the file to the matrix owner.", false);
+  }
+
+  document.getElementById("add").addEventListener("click", addEntry);
+  document.getElementById("save").addEventListener("click", save);
+  document.getElementById("reset").addEventListener("click", function () {
+    if (!confirm("Clear all entries?")) return;
+    document.getElementById("entries").innerHTML = "";
+    seq = 0; addEntry(); msg("", false);
+  });
+
+  addEntry();
+})();
+</script>
+</body>
+</html>
